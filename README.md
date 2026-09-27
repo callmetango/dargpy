@@ -1,8 +1,8 @@
-# dargpy
+# darg<sup>[py]</sup>
 
-> Bring light to `argparse`.
+*Bring light to `argparse`.*
 
-dargpy is a small Python domain-specific language (DSL) for defining command-line interfaces with [`argparse`](https://docs.python.org/3/library/argparse.html). It provides a lightweight, declarative interface while keeping `argparse` at its core.
+darg is a small Python domain-specific language (DSL) for defining command-line interfaces with [`argparse`](https://docs.python.org/3/library/argparse.html). It provides a lightweight, declarative interface while keeping `argparse` at its core.
 
 ## Installation
 
@@ -44,7 +44,7 @@ args._command
 # "release/upload"
 ```
 
-The selected command callable is available as:
+If the selected command declares func, the callable is available as:
 
 ```python
 args.func
@@ -137,9 +137,9 @@ dispatch(args, release)
 
 The declaration parameters `about`, `hint`, `default`, and `dest` take precedence over qualifier configuration and other keyword arguments. When multiple qualifiers configure the same `argparse` setting, the last qualifier wins.
 
-## Why dargpy?
+## Why darg?
 
-`argparse` is already a good command-line parser. dargpy makes structured CLI definitions concise and keeps the parser underneath rather than amassing machinery on top of it.
+`argparse` is already a good command-line parser. darg makes structured CLI definitions concise and keeps the parser underneath rather than amassing machinery on top of it.
 
 The structure remains visible in Python:
 
@@ -160,7 +160,7 @@ The goal is deliberately modest:
 
 ## Development
 
-dargpy aims to be simple and clean, following [KISS and DRY](https://www.boldare.com/blog/kiss-yagni-dry-principles/). We care about separating concerns into their own modules, validating configuration at the boundary, and avoiding unnecessary machinery. PEP 8 not so much.
+darg aims to be simple and clean, following [KISS and DRY](https://www.boldare.com/blog/kiss-yagni-dry-principles/). We care about separating concerns into their own modules, validating configuration at the boundary, and avoiding unnecessary machinery. PEP 8 not so much.
 
 Install the development dependencies:
 
@@ -168,7 +168,7 @@ Install the development dependencies:
 python -m pip install -e ".[test]"
 ```
 
-dargpy's tests use a Gherkin-style Given/When/Then structure with pytest. They are executable specifications, with fixtures used selectively for reusable context.
+darg's tests use a Gherkin-style Given/When/Then structure with pytest. They are executable specifications, with fixtures used selectively for reusable context.
 
 Run the tests with:
 
@@ -182,7 +182,7 @@ python -m pytest
 
 ## Status
 
-dargpy is small and evolving. The API is not yet considered stable.
+darg is small and evolving. The API is not yet considered stable.
 
 ## License
 
