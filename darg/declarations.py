@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from .cli import _cli
 from .qualifiers import Qualifier
@@ -126,7 +126,8 @@ def option(name: str, *qualifiers: Qualifier, alias: str | None = None,
 
 
 @contextmanager
-def command(name: str, *, about: str | None = None, **kwargs: Any) -> Iterator[None]:
+def command(name: str, *, func: Callable[..., Any] | None = None,
+		about: str | None = None, **kwargs: Any) -> Iterator[None]:
 	"""Define a command."""
 
 	assert name, "name must not be empty"
@@ -151,6 +152,8 @@ def command(name: str, *, about: str | None = None, **kwargs: Any) -> Iterator[N
 	child = subparsers.add_parser(name, **parser_kwargs)
 	cmdname = f"{cli.command}/{name}" if cli.command else name
 	child.set_defaults(_command=cmdname)
+	if func is not None:
+		child.set_defaults(func=func)
 
 	cli.push(child, name)
 
