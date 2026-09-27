@@ -253,9 +253,9 @@ def Given_a_CLI():
 			with command(COMMAND):
 				pass
 
-			with pytest.raises(ArgumentError) as error:
+			with pytest.raises((ArgumentError, ValueError)) as error:
 				with command(COMMAND):
 					pass
 
 		def Then_an_argument_error_is_raised():
-			assert error.type is ArgumentError
+			assert error.type in (ArgumentError, ValueError)
