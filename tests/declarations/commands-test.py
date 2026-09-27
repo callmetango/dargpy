@@ -1,131 +1,261 @@
-from argparse import ArgumentError, Namespace
+from argparse import ArgumentError
 
 import pytest
 
-from darg import Cli, argument, command, flag, option
+from darg import Cli, argument, command, option
 
 
-def Given_command_declarations():
+def commandParser(cli, *path):
+	parser = cli.parser
 
-	def When_a_nested_command_is_selected():
+	for name in path:
+		parser = cli.subparsers[parser].choices[name]
 
-		cli = Cli()
+	return parser
 
-		with cli:
-			with command("release"):
-				with command("upload"):
-					argument("tag")
 
-		actual = cli.parse_args(["release", "upload", "v1"])
+# Commands
 
-		def Then_the_canonical_command_path_is_stored():
-			assert actual._command == "release/upload"
+def Given_a_CLI_with_an_upload_command():
 
-	def When_a_command_is_defined_at_the_root():
+	COMMAND = "upload"
 
-		cli = Cli()
+	cli = Cli()
 
-		with cli:
-			with command("upload"):
-				argument("tag")
+	with cli:
+		with command(COMMAND):
+			pass
 
-		actual = cli.parse_args(["upload", "v1"])
+	def When_the_command_parser_is_retrieved():
 
-		def Then_the_command_path_contains_only_the_command_name():
-			assert actual._command == "upload"
+		actual = commandParser(cli, COMMAND)
 
-	def When_custom_prefix_chars_are_used():
+		def Then_the_command_path_is_stored():
+			assert actual.get_default("_command") == COMMAND
 
-		cli = Cli(prefix_chars="+/")
 
-		with cli:
-			with command("upload"):
-				flag("verbose", alias="v")
+def Given_a_CLI_with_a_nested_upload_command():
 
-		actual = cli.parse_args(["upload", "++verbose"])
+	PARENT = "release"
+	COMMAND = "upload"
+	PATH = f"{PARENT}/{COMMAND}"
 
-		def Then_the_prefix_character_is_inherited_by_the_command():
-			assert actual == Namespace(_command="upload", verbose=True)
+	cli = Cli()
 
-	def When_a_command_overrides_inherited_parser_configuration():
+	with cli:
+		with command(PARENT):
+			with command(COMMAND):
+				pass
 
-		cli = Cli(allow_abbrev=True)
+	def When_the_command_parser_is_retrieved():
 
-		with cli:
-			with command("upload", allow_abbrev=False):
-				option("verbose")
+		actual = commandParser(cli, PARENT, COMMAND)
 
-		def Then_the_command_configuration_takes_precedence():
-			with pytest.raises(SystemExit):
-				cli.parse_args(["upload", "--verb", "value"])
+		def Then_the_full_command_path_is_stored():
+			assert actual.get_default("_command") == PATH
 
-	def When_a_command_description_is_given_as_a_kwarg():
 
-		cli = Cli()
+def Given_a_CLI_with_an_upload_command_and_a_function():
 
-		with cli:
-			with command("upload", description="kwargs"):
-				argument("value")
+	COMMAND = "upload"
 
-		def Then_the_description_is_applied():
-			assert cli.parser._actions[1].choices["upload"].description == "kwargs"
+	def _upload(tag):
+		return tag
 
-	def When_a_command_help_is_given_as_a_kwarg():
+	cli = Cli()
 
-		cli = Cli()
+	with cli:
+		with command(COMMAND, func=_upload):
+			pass
 
-		with cli:
-			with command("upload", help="kwargs"):
-				argument("value")
+	def When_the_command_parser_is_retrieved():
 
-		def Then_the_help_is_applied():
-			action = cli.parser._actions[1]
-			assert action._choices_actions[0].help == "kwargs"
+		actual = commandParser(cli, COMMAND)
 
-	def When_a_command_about_is_given():
+		def Then_the_command_function_is_stored():
+			assert actual.get_default("func") is _upload
 
-		cli = Cli()
 
-		with cli:
-			with command("upload", about="DSL"):
-				argument("value")
+def Given_a_CLI_with_a_nested_upload_command_and_a_function():
 
-		def Then_about_is_applied_as_description_and_help():
-			action = cli.parser._actions[1]
-			child = action.choices["upload"]
-			assert child.description == "DSL"
-			assert action._choices_actions[0].help == "DSL"
+	PARENT = "release"
+	COMMAND = "upload"
 
-	def When_a_command_about_overrides_a_description_kwarg():
+	def _upload(tag):
+		return tag
 
-		cli = Cli()
+	cli = Cli()
 
-		with cli:
-			with command("upload", about="DSL", description="kwargs"):
-				argument("value")
+	with cli:
+		with command(PARENT):
+			with command(COMMAND, func=_upload):
+				pass
 
-		def Then_the_explicit_about_wins():
-			assert cli.parser._actions[1].choices["upload"].description == "DSL"
+	def When_the_command_parser_is_retrieved():
 
-	def When_a_command_name_is_declared_twice():
+		actual = commandParser(cli, PARENT, COMMAND)
 
-		cli = Cli()
+		def Then_the_command_function_is_stored():
+			assert actual.get_default("func") is _upload
 
-		def Then_the_second_declaration_raises_an_argument_error():
-			with cli:
-				with command("upload"):
-					pass
 
-				with pytest.raises(ArgumentError):
-					with command("upload"):
-						pass
+def Given_a_CLI_with_an_upload_command_and_an_argument():
+
+	COMMAND = "upload"
+	ARGUMENT = "tag"
+
+	cli = Cli()
+
+	with cli:
+		with command(COMMAND):
+			argument(ARGUMENT)
+
+	def When_the_command_parser_is_retrieved():
+
+		actual = commandParser(cli, COMMAND)
+
+		def Then_the_argument_is_declared():
+			assert ARGUMENT in actual.format_usage()
+
+
+def Given_a_CLI_with_an_upload_command_and_an_option():
+
+	COMMAND = "upload"
+	OPTION = "verbose"
+
+	cli = Cli()
+
+	with cli:
+		with command(COMMAND):
+			option(OPTION)
+
+	def When_the_command_parser_is_retrieved():
+
+		actual = commandParser(cli, COMMAND)
+
+		def Then_the_option_is_declared():
+			assert f"--{OPTION}" in actual.format_help()
+
+
+# Configuration
+
+def Given_a_CLI_with_parser_configuration():
+
+	COMMAND = "upload"
+
+	cli = Cli(allow_abbrev=True)
+
+	with cli:
+		with command(COMMAND, allow_abbrev=False):
+			pass
+
+	def When_the_command_parser_is_retrieved():
+
+		actual = commandParser(cli, COMMAND)
+
+		def Then_the_command_configuration_is_used():
+			assert actual.allow_abbrev is False
+
+
+def Given_a_CLI_with_an_upload_command_and_about():
+
+	COMMAND = "upload"
+	ABOUT = "Upload files"
+
+	cli = Cli()
+
+	with cli:
+		with command(COMMAND, about=ABOUT):
+			pass
+
+	def When_the_command_parser_is_retrieved():
+
+		actual = commandParser(cli, COMMAND)
+
+		def Then_the_command_description_is_about():
+			assert actual.description == ABOUT
+
+
+def Given_a_CLI_with_an_upload_command_and_help():
+
+	COMMAND = "upload"
+	HELP = "Upload files"
+
+	cli = Cli()
+
+	with cli:
+		with command(COMMAND, help=HELP):
+			pass
+
+	def When_the_command_help_is_formatted():
+
+		actual = cli.parser.format_help()
+
+		def Then_the_help_is_used():
+			assert HELP in actual
+
+
+def Given_a_CLI_with_an_upload_command_and_about_and_description():
+
+	COMMAND = "upload"
+	ABOUT = "DSL"
+	DESCRIPTION = "argparse"
+
+	cli = Cli()
+
+	with cli:
+		with command(COMMAND, about=ABOUT, description=DESCRIPTION):
+			pass
+
+	def When_the_command_parser_is_retrieved():
+
+		actual = commandParser(cli, COMMAND)
+
+		def Then_about_has_precedence():
+			assert actual.description == ABOUT
+
+
+# Validation
+
+def Given_a_CLI():
+
+	EMPTY_NAME = ""
+	NAME_WITH_SLASH = "release/upload"
+	COMMAND = "upload"
+
+	cli = Cli()
 
 	def When_a_command_name_is_empty():
 
-		cli = Cli()
+		with pytest.raises(AssertionError, match="name must not be empty") as error:
+			with cli:
+				with command(EMPTY_NAME):
+					pass
 
 		def Then_an_assertion_error_is_raised():
+			assert error.type is AssertionError
+
+
+	def When_a_command_name_contains_a_separator():
+
+		with pytest.raises(AssertionError, match="must not contain '/'") as error:
 			with cli:
-				with pytest.raises(AssertionError, match="name must not be empty"):
-					with command(""):
-						pass
+				with command(NAME_WITH_SLASH):
+					pass
+
+		def Then_an_assertion_error_is_raised():
+			assert error.type is AssertionError
+
+
+	def When_the_same_command_is_declared_again():
+
+		with cli:
+			with command(COMMAND):
+				pass
+
+			with pytest.raises(ArgumentError) as error:
+				with command(COMMAND):
+					pass
+
+		def Then_an_argument_error_is_raised():
+			assert error.type is ArgumentError
